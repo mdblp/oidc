@@ -181,6 +181,39 @@ func NewRelyingPartyOIDC(issuer, clientID, clientSecret, redirectURI string, sco
 	return rp, nil
 }
 
+func NewRelyingPartyOIDCWithCustomEndpoints(
+	issuer,
+	clientID,
+	clientSecret,
+	redirectURI string,
+	scopes []string,
+	discoveryConfiguration *oidc.DiscoveryConfiguration,
+	options ...Option) (RelyingParty, error) {
+
+	rp := &relyingParty{
+		issuer: issuer,
+		oauthConfig: &oauth2.Config{
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RedirectURL:  redirectURI,
+			Scopes:       scopes,
+		},
+		httpClient: httphelper.DefaultHTTPClient,
+		oauth2Only: false,
+	}
+
+	for _, optFunc := range options {
+		if err := optFunc(rp); err != nil {
+			return nil, err
+		}
+	}
+	endpoints := GetEndpoints(discoveryConfiguration)
+	rp.oauthConfig.Endpoint = endpoints.Endpoint
+	rp.endpoints = endpoints
+
+	return rp, nil
+}
+
 //Option is the type for providing dynamic options to the relyingParty
 type Option func(*relyingParty) error
 
